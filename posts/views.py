@@ -1,50 +1,56 @@
-from rest_framework.decorators import api_view
+
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework import status
 from .serializer import PostSerializer
 from .models import Post
+from rest_framework.views import APIView
 
 
-@api_view(['GET'])
-def posts_listing(request: Request):
-    posts = Post.objects.all()
-    serializer = PostSerializer(instance=posts, many=True)
-    print(serializer)
-    return Response(data=serializer.data, status=status.HTTP_200_OK)
+class CreateListPostsView(APIView):
+    """
+    Create a new post or list all posts
+    """
+    serializer_class = PostSerializer
 
-
-@api_view(['GET'])
-def post_detail(request: Request, pid: int):
-    post = get_object_or_404(Post, id=pid)
-    serializer = PostSerializer(instance=post)
-    if serializer.is_valid():
+    def get(self, request: Request):
+        posts = Post.objects.all()
+        serializer = self.serializer_class(instance=posts, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
-    return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request: Request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
-def create_post(request: Request):
-    serializer = PostSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_201_CREATED)
-    return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class ManagePostView(APIView):
+    """
+    Retrieve, update or delete a post instance
+    """
+    serializer_class = PostSerializer
 
+    @staticmethod
+    def get_post(pid: int):
+        return get_object_or_404(Post, pk=pid)
 
-@api_view(['PUT'])
-def update_post(request: Request, pid: int):
-    post = get_object_or_404(Post, id=pid)
-    serializer = PostSerializer(instance=post, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
+    def get(self, request: Request, pid: int):
+        post = self.get_post(pid)
+        serializer = self.serializer_class(instance=post)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
-    return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def put(self, request: Request, pid: int):
+        post = self.get_post(pid)
+        serializer = self.serializer_class(instance=post, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['DELETE'])
-def delete_post(request: Request, pid: int):
-    post = get_object_or_404(Post, id=pid)
-    post.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request: Request, pid: int):
+        post = self.get_post(pid)
+        post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
