@@ -1,12 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
-from .views import posts_listing, create_post, post_detail, update_post, delete_post
+from .views import CreateListPostsView, ManagePostView
 
 urlpatterns = [
-    path('', posts_listing, name='posts_listing'),
-    path('<int:pid>/', post_detail, name='post_detail'),
-    path('create/', create_post, name='create_post'),
-    path('<int:pid>/update/', update_post, name='update_post'),
-    path('<int:pid>/delete/', delete_post, name='delete_post'),
+
+    path('', CreateListPostsView.as_view(), name='create_list_posts'),
+    path('<int:pid>/', ManagePostView.as_view(), name='manage_posts'),
 
 ]
